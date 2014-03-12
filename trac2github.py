@@ -117,11 +117,12 @@ for ticket in tracTickets:
         status = 'closed'
     else:
         status = 'open'
+    descriptionMarkup = ticket['description'].strip() + '\n- trac-id:' + ticket['id'].strip() + '\n- trac-time:' + ticket['time'].strip() + '\n- trac-changetime:' + ticket['changetime'].strip() + '\n- trac-reporter:' + ticket['reporter'].strip() + '\n- trac-keywords:' + ticket['keywords'].strip() + '\n- trac-cc:' + ticket['cc'].strip() + '\n- trac-owner:' + ticket['owner'].strip() + '\n- trac-owner:' + ticket['owner'].strip() + '\n- trac-version:' + ticket['version'].strip()
     if milestoneId == 0:
         # if there is no milestone then we must not pass it as a parameter
-        data=json.dumps({'title': ticket['summary'], 'body': ticket['description'].strip(), "state": status, 'labels': [ticket['component'], ticket['type'], ticket['priority'], ticket['resolution']]})
+        data=json.dumps({'title': ticket['summary'].strip(), 'body': descriptionMarkup, "state": status, 'labels': [ticket['component'], ticket['type'], ticket['priority'], ticket['resolution']]})
     else:
-        data=json.dumps({'title': ticket['summary'], 'body': ticket['description'].strip(), 'milestone': milestoneId, "state": status, 'labels': [ticket['component'], ticket['type'], ticket['priority'], ticket['resolution']]})
+        data=json.dumps({'title': ticket['summary'].strip(), 'body': descriptionMarkup, 'milestone': milestoneId, "state": status, 'labels': [ticket['component'], ticket['type'], ticket['priority'], ticket['resolution']]})
     # so far unused fields: col=id& &col=time &col=changetime &col=reporter &col=keywords &col=cc 'assignee': ticket['owner'], , ticket['version']
     #if currentTicket > 223: # ticket 224 has issues that are as yet un identified, ticket 147 is the fist one to not have a milestone
     makeIssueRequest(str(currentTicket), data) # ticket['id']
