@@ -24,21 +24,25 @@ issuesUrl = githubApiUrl + '/repos/%s/%s/issues' % (githubProject, githubReposit
 print(milestoneUrl)
 print(issuesUrl)
 
-knownMilestones = []
+knownMilestones = {}
 
 def getAllMileStones():
     response = urllib.urlopen(milestoneUrl)
-    content = response.read()
-    #print(content)
-    milestones = json.loads(content)
-    #print(milestones)
-    del knownMilestones[:]
-    for entry in milestones:
-        print entry['number'], ' : ', entry['title']
-        knownMilestones.insert(entry['number'], entry['title'])
+    if response.getcode() == 200:
+        content = response.read()
+        #print(content)
+        milestones = json.loads(content)
+        #print(milestones)
+        # del knownMilestones[:]
+        for entry in milestones:
+            print entry['number'], ' : ', entry['title']
+            knownMilestones[entry['title']] = entry['number']
 
 def getMileStoneId(milestoneTitle):
-    if len(milestoneTitle.strip()) == 0:
+    #print milestoneTitle
+    #print knownMilestones
+    if len(milestoneTitle) == 0 or not knownMilestones:
+        # the milestone is blank or the list of milestones is empty, so we return here
         return ""
     if not milestoneTitle in knownMilestones:
         data=json.dumps({'title': milestoneTitle, 'state': 'open'})
@@ -50,10 +54,11 @@ def getMileStoneId(milestoneTitle):
         #, 'Content-Length': datalength}
         request.add_header('Authorization', 'Basic %s' % base64string)
         response = urllib2.urlopen(request)
-        print(response)
+        #print(response)
+        knownMilestones[entry['title']] = entry['number']
         knownMilestones.append(milestoneTitle)
         time.sleep(1)
-    return knownMilestones.index(milestoneTitle)
+    return knownMilestones[milestoneTitle]
 
 def createRequiredEmptyTickets(tracTicketCount):
     print 'total ticket count: ', tracTicketCount
@@ -61,7 +66,10 @@ def createRequiredEmptyTickets(tracTicketCount):
     content = response.read()
     tickets = json.loads(content)
     #print(tickets)
-    currentIssueCount = tickets[0]['number']
+    if len(tickets) > 0:
+        currentIssueCount = tickets[0]['number']
+    else:
+        currentIssueCount = 0
     while tracTicketCount > currentIssueCount:
         currentIssueCount = currentIssueCount + 1
         makeEmptyIssueRequest()
@@ -101,6 +109,7 @@ for ticket in tracTickets:
     tracTicketCount = tracTicketCount + 1
     milestoneId = getMileStoneId(ticket['milestone'])
 # make sure the milestone list is up to date
+knownMilestones = {}
 getAllMileStones()
 print 'adding tickets'
 createRequiredEmptyTickets(tracTicketCount)
@@ -111,18 +120,24 @@ currentTicket = 0
 for ticket in tracTickets:
     #print (ticket)    
     currentTicket = currentTicket + 1
-    milestoneId = getMileStoneId(ticket['milestone'])
-    #print 'milestone: ', milestoneId
+    milestoneId = getMileStoneId(ticket['milestone'].strip())
+    print 'milestone: ', milestoneId
+    #if currentTicket > 394:
     if ticket['status'] == 'closed':
         status = 'closed'
     else:
         status = 'open'
-    descriptionMarkup = ticket['description'].strip() + '\n- trac-id:' + ticket['id'].strip() + '\n- trac-time:' + ticket['time'].strip() + '\n- trac-changetime:' + ticket['changetime'].strip() + '\n- trac-reporter:' + ticket['reporter'].strip() + '\n- trac-keywords:' + ticket['keywords'].strip() + '\n- trac-cc:' + ticket['cc'].strip() + '\n- trac-owner:' + ticket['owner'].strip() + '\n- trac-owner:' + ticket['owner'].strip() + '\n- trac-version:' + ticket['version'].strip()
-    if milestoneId == 0:
+    labels =  [ticket['component'], ticket['type'], ticket['priority'], ticket['resolution']]
+    while labels.count("") > 0:
+        labels.remove("")
+    # add a link into trac from the imported github tickets
+    tracLink = "https://trac.mpi.nl/ticket/" + ticket['id'].strip();
+    descriptionMarkup = ticket['description'].strip() + '\n- trac-id:' + ticket['id'].strip() + '\n- trac-time:' + ticket['time'].strip() + '\n- trac-changetime:' + ticket['changetime'].strip() + '\n- trac-reporter:' + ticket['reporter'].strip() + '\n- trac-keywords:' + ticket['keywords'].strip() + '\n- trac-cc:' + ticket['cc'].strip() + '\n- trac-owner:' + ticket['owner'].strip() + '\n- trac-owner:' + ticket['owner'].strip() + '\n- trac-version:' + ticket['version'].strip()+ '\n- ' + tracLink
+    if milestoneId == "":
         # if there is no milestone then we must not pass it as a parameter
-        data=json.dumps({'title': ticket['summary'].strip(), 'body': descriptionMarkup, "state": status, 'labels': [ticket['component'], ticket['type'], ticket['priority'], ticket['resolution']]})
+        data=json.dumps({'title': ticket['summary'].strip(), 'body': descriptionMarkup, "state": status, 'labels': labels})
     else:
-        data=json.dumps({'title': ticket['summary'].strip(), 'body': descriptionMarkup, 'milestone': milestoneId, "state": status, 'labels': [ticket['component'], ticket['type'], ticket['priority'], ticket['resolution']]})
+        data=json.dumps({'title': ticket['summary'].strip(), 'body': descriptionMarkup, 'milestone': milestoneId, "state": status, 'labels': labels})
     # so far unused fields: col=id& &col=time &col=changetime &col=reporter &col=keywords &col=cc 'assignee': ticket['owner'], , ticket['version']
     #if currentTicket > 223: # ticket 224 has issues that are as yet un identified, ticket 147 is the fist one to not have a milestone
     makeIssueRequest(str(currentTicket), data) # ticket['id']
