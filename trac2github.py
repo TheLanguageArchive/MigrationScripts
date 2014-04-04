@@ -41,7 +41,7 @@ def getAllMileStones():
 def getMileStoneId(milestoneTitle):
     #print milestoneTitle
     #print knownMilestones
-    if len(milestoneTitle) == 0 or not knownMilestones:
+    if len(milestoneTitle) == 0:
         # the milestone is blank or the list of milestones is empty, so we return here
         return ""
     if not milestoneTitle in knownMilestones:
@@ -55,8 +55,8 @@ def getMileStoneId(milestoneTitle):
         request.add_header('Authorization', 'Basic %s' % base64string)
         response = urllib2.urlopen(request)
         #print(response)
-        knownMilestones[entry['title']] = entry['number']
-        knownMilestones.append(milestoneTitle)
+        knownMilestones[milestoneTitle] = 0 # this value will be replaced when getAllMileStones is next called
+        #knownMilestones.append(milestoneTitle)
         time.sleep(1)
     return knownMilestones[milestoneTitle]
 
