@@ -1,0 +1,9 @@
+# Example file! For a ready to use version, see:
+# https://trac.mpi.nl/attachment/wiki/TLA%20on%20GitHub/users.txt
+
+svnusername = Real Name <githubadres@isp.org.yt>
+potus = Barack Obama <Barack.Obama@mpi.nl>
+pontifex = Jorge Mario Bergoglio <av@pccs.va>
+
+(no author) = Unknown <tla-dev@mpi.nl>
+
